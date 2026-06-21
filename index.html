@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multimodal Churn Predictor Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-primary: #090d16;
+            --bg-secondary: #101726;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.07);
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --card-bg: rgba(16, 23, 38, 0.65);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 45%);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+
+        /* Search Box */
+        .search-section {
+            max-width: 600px;
+            margin: 0 auto 40px auto;
+            text-align: center;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .search-form:focus-within {
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.25);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            padding: 12px 24px;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: #fff;
+            border: none;
+            outline: none;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            transition: var(--transition);
+        }
+
+        .search-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.55);
+        }
+
+        .helper-text {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .helper-text strong {
+            color: #c084fc;
+        }
+
+        /* Error Alert */
+        .error-alert {
+            display: none;
+            gap: 16px;
+            max-width: 600px;
+            margin: 0 auto 30px auto;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+        }
+
+        .alert-content strong {
+            color: #fca5a5;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .alert-content p {
+            color: #fecaca;
+            font-size: 0.95rem;
+        }
+
+        /* Loader */
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            margin: 60px 0;
+        }
+
+        .spinner {
+            width: 45px;
+            height: 45px;
+            border: 4px solid rgba(139, 92, 246, 0.15);
+            border-top-color: var(--accent-purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Dashboard Container Frame (Color-Coded border) */
+        .dashboard-frame {
+            display: none; /* Shown dynamically */
+            border-radius: 24px;
+            padding: 8px;
+            transition: var(--transition);
+        }
+
+        /* Warning frame classes */
+        .frame-high {
+            border: 3px solid #ef4444;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.25);
+            animation: pulse-border-red 2.5s infinite;
+        }
+
+        .frame-medium {
+            border: 3px solid #f97316;
+            box-shadow: 0 0 30px rgba(249, 115, 22, 0.25);
+        }
+
+        .frame-low {
+            border: 3px solid #22c55e;
+            box-shadow: 0 0 30px rgba(34, 197, 94, 0.25);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+            background: #0b0f19;
+            border-radius: 20px;
+            padding: 24px;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+        }
+
+        .dashboard-card h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 12px;
+        }
+
+        /* Gauge Panel */
+        .card-hero {
+            grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 10px 0;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.03);
+            stroke-width: 8;
+        }
+
+        .gauge-circle-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1s ease-out, stroke 1s;
+        }
+
+        .gauge-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            text-anchor: middle;
+            transform: rotate(90deg);
+            transform-origin: 50px 50px;
+        }
+
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+
+        .badge-medium {
+            background: rgba(249, 115, 22, 0.15);
+            color: #fb923c;
+            border: 1px solid rgba(249, 115, 22, 0.25);
+        }
+
+        .badge-low {
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+
+        /* Recommendations */
+        .card-recommendations {
+            grid-column: span 8;
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 12px;
+        }
+
+        .recommendation-header h2 {
+            margin-bottom: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .rec-label {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid rgba(139, 92, 246, 0.25);
+        }
+
+        .rec-block {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .rec-item strong {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .trigger-val {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .action-box {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 4px solid var(--accent-purple);
+            padding: 14px 16px;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .action-box p {
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.45;
+        }
+
+        /* Operational Metrics */
+        .card-metrics {
+            grid-column: span 5;
+        }
+
+        .metrics-subgrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .metric-cell {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 14px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .cell-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .cell-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .cell-value.badge-tier {
+            font-size: 1rem;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            padding: 2px 8px;
+            border-radius: 4px;
+            width: max-content;
+        }
+
+        /* Support Text & NLP */
+        .card-nlp {
+            grid-column: span 7;
+        }
+
+        .nlp-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        blockquote {
+            background: rgba(255, 255, 255, 0.01);
+            border-left: 3px solid rgba(255, 255, 255, 0.15);
+            padding: 12px 16px;
+            font-style: italic;
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            border-radius: 0 8px 8px 0;
+            line-height: 1.45;
+        }
+
+        .sentiment-bar-block {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .sentiment-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .sentiment-score {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.15rem;
+        }
+
+        .sentiment-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 6px;
+        }
+
+        .sentiment-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease-out, background-color 1s;
+        }
+
+        .sentiment-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @keyframes pulse-border-red {
+            0%, 100% { border-color: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.15); }
+            50% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 10px rgba(239, 68, 68, 0.05); }
+        }
+
+        /* Responsive Grid */
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                display: flex;
+                flex-direction: column;
+            }
+            .search-form {
+                flex-direction: column;
+                border-radius: 20px;
+                padding: 12px;
+            }
+            .search-input {
+                padding: 8px;
+            }
+            .search-button {
+                border-radius: 12px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-title">
+                <span class="logo-icon">🔮</span>
+                <h1>Multimodal Churn Predictor</h1>
+            </div>
+            <p class="subtitle">Full-Stack Operational Churn Risk Dashboard</p>
+        </header>
+
+        <!-- Search input box -->
+        <section class="search-section">
+            <form id="search-form" class="search-form">
+                <input
+                    type="text"
+                    id="user-id-input"
+                    placeholder="Enter User ID (e.g. USR_00001, USR_00003 or 3)"
+                    class="search-input"
+                    required
+                />
+                <button type="submit" id="submit-btn" class="search-button">Analyze Risk</button>
+            </form>
+            <div class="helper-text">
+                Example Accounts: <strong>USR_00001</strong> (High risk) | <strong>USR_00003</strong> (Low risk)
+            </div>
+        </section>
+
+        <!-- Error box -->
+        <div id="error-alert" class="error-alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+                <strong>Prediction Failure</strong>
+                <p id="error-message">Could not connect to the model services.</p>
+            </div>
+        </div>
+
+        <!-- Spinner -->
+        <div id="loader" class="loader-container">
+            <div class="spinner"></div>
+            <p>Processing neural network metrics & databases...</p>
+        </div>
+
+        <!-- Dashboard Shell containing dynamic grids with warning frame -->
+        <div id="dashboard-frame" class="dashboard-frame">
+            <div class="dashboard-grid">
+                
+                <!-- Classification Gauge -->
+                <div class="dashboard-card card-hero">
+                    <h2>Churn Probability</h2>
+                    <div class="gauge-container">
+                        <svg class="gauge-svg" viewBox="0 0 100 100" width="100%" height="100%">
+                            <circle class="gauge-circle-bg" cx="50" cy="50" r="40" />
+                            <circle id="gauge-progress" class="gauge-circle-fill" cx="50" cy="50" r="40" stroke-dasharray="0 251.2" />
+                            <text id="gauge-value" class="gauge-number" x="50" y="55">0%</text>
+                        </svg>
+                    </div>
+                    <div class="status-label">
+                        <span id="risk-badge" class="status-badge">LOW RISK</span>
+                    </div>
+                </div>
+
+                <!-- Playbook Recommendations -->
+                <div class="dashboard-card card-recommendations">
+                    <div class="recommendation-header">
+                        <h2>Retention Playbook</h2>
+                        <span id="playbook-badge" class="rec-label">HEALTHY</span>
+                    </div>
+                    <div class="rec-block">
+                        <div class="rec-item">
+                            <strong>Churn Trigger Event:</strong>
+                            <p id="trigger-field" class="trigger-val">-</p>
+                        </div>
+                        <div class="rec-item action-box">
+                            <strong>Recommended Customer Success Action:</strong>
+                            <p id="action-field">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabular operational metrics -->
+                <div class="dashboard-card card-metrics">
+                    <h2>Operational Logs</h2>
+                    <div class="metrics-subgrid">
+                        <div class="metric-cell">
+                            <span class="cell-title">Logins (30d)</span>
+                            <span id="metric-logins" class="cell-value">-</span>
+                        </div>
+                        <div class="metric-cell">
+                            <span class="cell-title">Total Spend</span>
+                            <span id="metric-spend" class="cell-value">-</span>
+                        </div>
+                        <div class="metric-cell">
+                            <span class="cell-title">Inactivity</span>
+                            <span id="metric-inactive" class="cell-value">-</span>
+                        </div>
+                        <div class="metric-cell">
+                            <span class="cell-title">Subscription Tier</span>
+                            <span id="metric-tier" class="cell-value badge-tier">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text analysis & sentiment tracking -->
+                <div class="dashboard-card card-nlp">
+                    <h2>Support Ticket Sentiment</h2>
+                    <div class="nlp-layout">
+                        <div class="ticket-quote-container">
+                            <strong>Recent Ticket Message:</strong>
+                            <blockquote id="ticket-text-quote">"-"</blockquote>
+                        </div>
+                        <div class="sentiment-bar-block">
+                            <div class="sentiment-label-row">
+                                <strong>Sentiment Score:</strong>
+                                <span id="sentiment-score-field" class="sentiment-score">-</span>
+                            </div>
+                            <div class="sentiment-track">
+                                <div id="sentiment-fill" class="sentiment-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="sentiment-legend">
+                                <span>Angry (0.0)</span>
+                                <span>Happy (1.0)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('search-form');
+        const input = document.getElementById('user-id-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        const loader = document.getElementById('loader');
+        const dashboardFrame = document.getElementById('dashboard-frame');
+        
+        // Element bindings for updates
+        const gaugeFill = document.getElementById('gauge-progress');
+        const gaugeValue = document.getElementById('gauge-value');
+        const riskBadge = document.getElementById('risk-badge');
+        const playbookBadge = document.getElementById('playbook-badge');
+        const triggerField = document.getElementById('trigger-field');
+        const actionField = document.getElementById('action-field');
+        const metricLogins = document.getElementById('metric-logins');
+        const metricSpend = document.getElementById('metric-spend');
+        const metricInactive = document.getElementById('metric-inactive');
+        const metricTier = document.getElementById('metric-tier');
+        const ticketQuote = document.getElementById('ticket-text-quote');
+        const sentimentScoreField = document.getElementById('sentiment-score-field');
+        const sentimentFill = document.getElementById('sentiment-fill');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            let userId = input.value.trim().toUpperCase();
+            if (!userId) return;
+
+            // Formats: USR_00001
+            if (userId.startsWith('USR_') && userId.length < 9) {
+                const num = userId.substring(4);
+                if (!isNaN(num)) {
+                    userId = `USR_${num.padStart(5, '0')}`;
+                }
+            } else if (!isNaN(userId)) {
+                userId = `USR_${userId.padStart(5, '0')}`;
+            }
+
+            // UI resets
+            errorAlert.style.display = 'none';
+            dashboardFrame.style.display = 'none';
+            loader.style.display = 'flex';
+            submitBtn.disabled = true;
+
+            try {
+                // Asynchronous POST call to FastAPI predict endpoint
+                const response = await fetch(`http://127.0.0.1:8000/api/predict-churn/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`User ID "${userId}" does not exist in the database.`);
+                    }
+                    throw new Error('Predictions service failed. Ensure the FastAPI application is running.');
+                }
+
+                const data = await response.json();
+                renderDashboard(data);
+
+            } catch (err) {
+                errorMessage.textContent = err.message;
+                errorAlert.style.display = 'flex';
+            } finally {
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function renderDashboard(data) {
+            // 1. Color warning frames & badges
+            dashboardFrame.className = 'dashboard-frame'; // Reset classes
+            riskBadge.className = 'status-badge';
+            
+            let color = '';
+            if (data.status === 'High Risk') {
+                dashboardFrame.classList.add('frame-high');
+                riskBadge.classList.add('badge-high');
+                playbookBadge.textContent = 'CRITICAL ALERT';
+                playbookBadge.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+                playbookBadge.style.color = '#f87171';
+                playbookBadge.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                color = '#ef4444'; // Red
+            } else if (data.status === 'Medium Risk') {
+                dashboardFrame.classList.add('frame-medium');
+                riskBadge.classList.add('badge-medium');
+                playbookBadge.textContent = 'MONITOR ACC';
+                playbookBadge.style.backgroundColor = 'rgba(249, 115, 22, 0.15)';
+                playbookBadge.style.color = '#fb923c';
+                playbookBadge.style.borderColor = 'rgba(249, 115, 22, 0.25)';
+                color = '#f97316'; // Orange
+            } else {
+                dashboardFrame.classList.add('frame-low');
+                riskBadge.classList.add('badge-low');
+                playbookBadge.textContent = 'HEALTHY';
+                playbookBadge.style.backgroundColor = 'rgba(34, 197, 94, 0.15)';
+                playbookBadge.style.color = '#4ade80';
+                playbookBadge.style.borderColor = 'rgba(34, 197, 94, 0.25)';
+                color = '#22c55e'; // Green
+            }
+
+            // 2. Churn Risk Gauge
+            const percent = Math.round(data.churn_risk * 100);
+            gaugeValue.textContent = `${percent}%`;
+            gaugeValue.style.fill = color;
+            
+            // strokeDasharray circle perimeter: 2 * PI * r = 2 * 3.1415 * 40 = 251.2
+            const strokeDashVal = (data.churn_risk * 251.2);
+            gaugeFill.style.strokeDasharray = `${strokeDashVal} 251.2`;
+            gaugeFill.style.stroke = color;
+
+            riskBadge.textContent = data.status;
+
+            // 3. Playbook Recommendations
+            triggerField.textContent = data.trigger;
+            
+            if (data.churn_risk >= 0.70) {
+                actionField.textContent = "Trigger immediate loyalty discount offer (e.g. 30% off for 6 months) and request a personal call back from an account representative.";
+            } else if (data.churn_risk >= 0.35) {
+                actionField.textContent = "Flag profile for auto-nurture campaign. Email coupon and send product tips newsletter to re-engage.";
+            } else {
+                actionField.textContent = "Account metrics are stable. Maintain standard customer success relations.";
+            }
+
+            // 4. Metrics Readouts
+            metricLogins.textContent = data.login_count_30d;
+            metricSpend.textContent = `$${data.total_spend.toFixed(2)}`;
+            metricInactive.textContent = `${data.days_since_last_login} days`;
+            metricTier.textContent = data.subscription_type;
+
+            // 5. NLP Analysis
+            if (data.tickets && data.tickets.length > 0) {
+                ticketQuote.textContent = `"${data.tickets[0]}"`;
+            } else {
+                ticketQuote.textContent = "No active tickets.";
+            }
+
+            sentimentScoreField.textContent = data.support_sentiment_score.toFixed(4);
+            
+            // Map color for sentiment (angry/0 = red, happy/1 = green)
+            // 1 - sentiment score means: 0 (happy) -> red, 1 (angry) -> green?
+            // Wait, getRiskColor takes 1 - sentiment:
+            // For angry sentiment=0, 1-sentiment=1 -> returns red.
+            // For happy sentiment=1, 1-sentiment=0 -> returns green.
+            let sentimentColor = '#22c55e'; // default happy green
+            if (data.support_sentiment_score < 0.35) sentimentColor = '#ef4444';
+            else if (data.support_sentiment_score < 0.70) sentimentColor = '#f97316';
+            
+            sentimentScoreField.style.color = sentimentColor;
+            sentimentFill.style.width = `${data.support_sentiment_score * 100}%`;
+            sentimentFill.style.backgroundColor = sentimentColor;
+
+            // Display dashboard Frame
+            dashboardFrame.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

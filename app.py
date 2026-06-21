@@ -213,6 +213,7 @@ async def predict_churn(payload: ChurnRequest):
     )
 
 @app.get("/api/predict-churn/{user_id}", response_model=ChurnResponse)
+@app.post("/api/predict-churn/{user_id}", response_model=ChurnResponse)
 async def get_predict_churn(user_id: str):
     payload = ChurnRequest(user_id=user_id)
     return await predict_churn(payload)
