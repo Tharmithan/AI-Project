@@ -54,7 +54,8 @@ def main():
     sequences = tokenizer.texts_to_sequences(df['ticket_text'])
     padded = pad_sequences(sequences, maxlen=max_length, padding='post', truncating='post')
     
-    labels = np.array(df['is_churned'], dtype=np.float32)
+    # Map labels: angry text (is_churned = 1) -> sentiment 0, happy text (is_churned = 0) -> sentiment 1
+    labels = np.array(1 - df['is_churned'], dtype=np.float32)
     
     # Construct sequential model
     model = Sequential([

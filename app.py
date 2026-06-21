@@ -165,7 +165,7 @@ async def predict_churn(payload: ChurnRequest):
         risk_status = "Low Risk"
         
     # Determine primary trigger reason
-    if support_sentiment_score > 0.65:
+    if support_sentiment_score < 0.35:
         trigger = "Low sentiment score on recent support tickets."
     elif days_since_last_login > 15:
         trigger = "High inactivity period (days since last login exceeds 15 days)."
