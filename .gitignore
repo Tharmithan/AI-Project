@@ -1,0 +1,7 @@
+node_modules/
+__pycache__/
+.env
+*.csv
+.venv/
+.DS_Store
+models/

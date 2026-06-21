@@ -1,0 +1,11 @@
+faker
+pymysql
+cryptography
+pandas
+numpy
+tensorflow
+scikit-learn
+xgboost
+fastapi
+uvicorn
+python-dotenv
