@@ -4,7 +4,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
-from xgboost import XGBClassifier
 
 def main():
     input_path = "data/final_engineered_features.csv"
@@ -29,7 +28,8 @@ def main():
         X, y, test_size=0.2, stratify=y, random_state=42
     )
     
-    # Train Random Forest Classifier
+    # Train Scikit-Learn Random Forest Classifier
+    print("\nTraining Scikit-Learn Random Forest Classifier...")
     rf_model = RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42)
     rf_model.fit(X_train, y_train)
     rf_preds = rf_model.predict(X_test)
@@ -41,41 +41,26 @@ def main():
     print(classification_report(y_test, rf_preds))
     print(f"RF Test Accuracy: {rf_acc:.4f}")
     
-    # Train XGBoost Classifier
-    xgb_model = XGBClassifier(
-        n_estimators=100,
-        max_depth=4,
-        learning_rate=0.1,
-        random_state=42,
-        eval_metric='logloss'
-    )
-    xgb_model.fit(X_train, y_train)
-    xgb_preds = xgb_model.predict(X_test)
-    xgb_acc = accuracy_score(y_test, xgb_preds)
+    # Rank feature importances to verify the impact of the sentiment tracking scores
+    importances = rf_model.feature_importances_
+    feature_importance_df = pd.DataFrame({
+        'Feature': feature_cols,
+        'Importance': importances
+    }).sort_values(by='Importance', ascending=False)
     
     print("\n" + "="*40)
-    print("XGBoost Classifier Evaluation:")
+    print("Ranked Feature Importances:")
     print("="*40)
-    print(classification_report(y_test, xgb_preds))
-    print(f"XGBoost Test Accuracy: {xgb_acc:.4f}")
-    
-    # Select the model with the higher accuracy
-    if xgb_acc >= rf_acc:
-        best_model = xgb_model
-        model_name = "XGBoost Classifier"
-    else:
-        best_model = rf_model
-        model_name = "Random Forest Classifier"
+    for idx, row in feature_importance_df.iterrows():
+        print(f"{row['Feature']}: {row['Importance']:.4f}")
         
-    print(f"\nSelecting {model_name} as the final classifier.")
-    
     # Export trained classifier model
     os.makedirs("models", exist_ok=True)
     model_output_path = "models/churn_classifier.pkl"
     with open(model_output_path, 'wb') as handle:
-        pickle.dump(best_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(rf_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
-    print(f"Successfully saved the final classifier model to '{model_output_path}'")
+    print(f"\nSuccessfully saved the Random Forest classifier model to '{model_output_path}'")
 
 if __name__ == "__main__":
     main()
