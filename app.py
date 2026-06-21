@@ -5,6 +5,7 @@ import pandas as pd
 import pymysql
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
@@ -51,6 +52,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class ChurnRequest(BaseModel):
     user_id: str
 
@@ -59,6 +68,12 @@ class ChurnResponse(BaseModel):
     churn_risk: float
     status: str
     trigger: str
+    login_count_30d: int
+    total_spend: float
+    days_since_last_login: int
+    subscription_type: str
+    support_sentiment_score: float
+    tickets: list[str]
 
 @app.post("/predict", response_model=ChurnResponse)
 async def predict_churn(payload: ChurnRequest):
@@ -135,8 +150,8 @@ async def predict_churn(payload: ChurnRequest):
     sub_free = 1 if subscription_type == "Free" else 0
     sub_premium = 1 if subscription_type == "Premium" else 0
     
-    # Feature columns array
-    features = np.array([[
+    # Feature columns DataFrame matching training layout
+    features = pd.DataFrame([[
         login_count_30d,
         total_spend,
         days_since_last_login,
@@ -144,7 +159,15 @@ async def predict_churn(payload: ChurnRequest):
         sub_basic,
         sub_free,
         sub_premium
-    ]])
+    ]], columns=[
+        'login_count_30d',
+        'total_spend',
+        'days_since_last_login',
+        'support_sentiment_score',
+        'subscription_type_Basic',
+        'subscription_type_Free',
+        'subscription_type_Premium'
+    ])
     
     # Run classification model
     classifier = ml_assets["churn_classifier"]
@@ -180,5 +203,16 @@ async def predict_churn(payload: ChurnRequest):
         user_id=user_id,
         churn_risk=round(churn_risk, 4),
         status=risk_status,
-        trigger=trigger
+        trigger=trigger,
+        login_count_30d=int(login_count_30d),
+        total_spend=round(total_spend, 2),
+        days_since_last_login=int(days_since_last_login),
+        subscription_type=subscription_type,
+        support_sentiment_score=round(support_sentiment_score, 4),
+        tickets=tickets
     )
+
+@app.get("/api/predict-churn/{user_id}", response_model=ChurnResponse)
+async def get_predict_churn(user_id: str):
+    payload = ChurnRequest(user_id=user_id)
+    return await predict_churn(payload)
